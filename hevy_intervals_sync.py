@@ -668,10 +668,13 @@ async def hevy_webhook(request: Request, authorization: Optional[str] = Header(N
     elif "workout" in body:
         workout = body["workout"]
 
-    # Pattern 3: body has a "workout_id", or Hevy's delivery shape
-    # {"id": ..., "payload": {"workoutId": ...}} — need to fetch from API
-    elif "workout_id" in body or "workoutId" in (body.get("payload") or {}):
-        workout_id = body.get("workout_id") or body["payload"]["workoutId"]
+    # Pattern 3: body names a workout id — need to fetch from API.
+    # Hevy's real delivery (observed 2026-10-01) is {"workoutId": ...};
+    # {"id": ..., "payload": {"workoutId": ...}} and "workout_id" kept for
+    # other senders.
+    elif (workout_id := body.get("workoutId")
+          or body.get("workout_id")
+          or (body.get("payload") or {}).get("workoutId")):
         log.info(f"Webhook contains workout_id={workout_id}, fetching from Hevy API...")
         try:
             hevy = HevyClient(HEVY_API_KEY)
